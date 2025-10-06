@@ -4,8 +4,6 @@
   "private": true,
   "license": "MIT",
   "dependencies": {
-    "firebase-admin": "^12.5.0",
-    "typescript": "^5.3.3"
-  },
-  "engines": { "node": "22.x" }
+    "firebase-admin": "^12.5.0"
+  }
 }
