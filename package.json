@@ -4,6 +4,10 @@
   "private": true,
   "license": "MIT",
   "dependencies": {
-    "firebase-admin": "^12.5.0"
+    "firebase-admin": "^12.5.0",
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "@vercel/node": "^3.0.0"
   }
 }
