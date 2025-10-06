@@ -1,6 +1,9 @@
 import { getAdmin } from './_admin';
 import { verifyIdToken, ensurePost } from './_auth';
 
+export const config = { runtime: 'nodejs22.x' };
+
+
 export default async function handler(req: Request) {
   try {
     ensurePost(req);

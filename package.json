@@ -7,8 +7,5 @@
     "firebase-admin": "^12.5.0",
     "typescript": "^5.3.3"
   },
-  "devDependencies": {
-    "@vercel/node": "^3.0.0"
-  },
-  "engines": { "node": "18.x" }
+  "engines": { "node": "22.x" }
 }
