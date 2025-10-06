@@ -2,8 +2,6 @@ import { getAdmin } from './_admin';
 import { verifyIdToken, ensurePost } from './_auth';
 import crypto from 'crypto';
 
-export const config = { runtime: 'nodejs20.x' };
-
 export default async function handler(req: Request) {
   try {
     ensurePost(req);
