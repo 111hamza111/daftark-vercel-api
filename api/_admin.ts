@@ -8,7 +8,7 @@ export function getAdmin() {
       ? admin.app()
       : admin.initializeApp({
           credential: admin.credential.cert(
-            JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON as string)
+            JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON!)
           ),
         });
   }

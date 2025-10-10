@@ -1,17 +1,19 @@
-import { getAdmin } from './_admin';
-import { verifyIdToken, ensurePost } from './_auth';
-import crypto from 'crypto';
-
 export const config = { runtime: 'nodejs' };
 
+import { getAdmin } from './_admin.js';
+import { verifyIdToken } from './_auth.js';
+import crypto from 'crypto';
 
 export default async function handler(req: Request) {
   try {
-    ensurePost(req);
+    if (req.method !== 'POST') {
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
     const uid = await verifyIdToken(req);
     const { db, admin } = getAdmin();
 
-    const { hash } = await req.json() as { hash?: string };
+    const { hash }: { hash?: string } = await req.json();
     const SIGN_KEY_HEX = process.env.SIGN_KEY_HEX || '';
 
     if (!hash || !/^[0-9a-fA-F]{64}$/.test(hash)) {
@@ -33,7 +35,6 @@ export default async function handler(req: Request) {
 
     return new Response(JSON.stringify({ ok: true, tokenId, signature }), { status: 200 });
   } catch (e: any) {
-    if (e instanceof Response) return e;
     return new Response(e?.message || 'Error', { status: 500 });
   }
 }
