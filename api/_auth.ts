@@ -4,16 +4,15 @@ import { getHeader } from './_http.js';
 
 const VERIFY_TIMEOUT_MS = Number(process.env.VERIFY_TIMEOUT_MS ?? 7000);
 
-// يقبل req بأي نمط، ويستخرج التوكن من الهيدر
 export async function verifyIdToken(req: any) {
-  const auth = getHeader(req, 'authorization') || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  const authHeader = getHeader(req, 'authorization') || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
   if (!token) throw new Response('Unauthenticated', { status: 401 });
 
-  const { admin } = getAdmin();
+  const { auth } = getAdmin();
   try {
     const decoded = await withTimeout(
-      admin.auth().verifyIdToken(token),
+      auth.verifyIdToken(token),
       VERIFY_TIMEOUT_MS,
       'verifyIdToken timeout'
     );

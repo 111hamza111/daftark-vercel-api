@@ -7,13 +7,12 @@ import { getMethod, readJson, sendJson, sendText } from './_http.js';
 
 const DB_TIMEOUT_MS = Number(process.env.DB_TIMEOUT_MS ?? 7000);
 
-// ندعم التوقيعين: (req,res) و(req)
 export default async function handler(req: any, res?: any) {
   try {
     if (getMethod(req) !== 'POST') return sendText(res, 'Method Not Allowed', 405);
 
     const uid = await verifyIdToken(req);
-    const { db, admin } = getAdmin();
+    const { db, FieldValue } = getAdmin();
 
     const { deviceFingerprint } = await readJson(req);
     if (!deviceFingerprint) return sendText(res, 'deviceFingerprint required', 400);
@@ -33,7 +32,7 @@ export default async function handler(req: any, res?: any) {
         trial: {
           days: TRIAL_DAYS,
           device: String(deviceFingerprint),
-          startedAt: admin.firestore.FieldValue.serverTimestamp(),
+          startedAt: FieldValue.serverTimestamp(),
         },
       }, { merge: true }),
       DB_TIMEOUT_MS,

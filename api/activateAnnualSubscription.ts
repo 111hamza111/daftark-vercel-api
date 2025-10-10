@@ -12,7 +12,7 @@ export default async function handler(req: any, res?: any) {
     if (getMethod(req) !== 'POST') return sendText(res, 'Method Not Allowed', 405);
 
     const uid = await verifyIdToken(req);
-    const { db, admin } = getAdmin();
+    const { db, FieldValue, Timestamp } = getAdmin();
 
     const body = await readJson(req);
     const mode = String(body.mode ?? 'manual');
@@ -29,15 +29,15 @@ export default async function handler(req: any, res?: any) {
       }
     }
 
-    const now = admin.firestore.Timestamp.now();
-    const end = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000));
+    const now = Timestamp.now();
+    const end = Timestamp.fromDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000));
 
     await withTimeout(
       db.collection('users').doc(uid).set({
         isPremium: true,
         subscriptionStart: now,
         subscriptionEnd: end,
-        trial: admin.firestore.FieldValue.delete(),
+        trial: FieldValue.delete(),
       }, { merge: true }),
       DB_TIMEOUT_MS,
       'firestore set timeout'

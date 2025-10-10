@@ -13,7 +13,7 @@ export default async function handler(req: any, res?: any) {
     if (getMethod(req) !== 'POST') return sendText(res, 'Method Not Allowed', 405);
 
     const uid = await verifyIdToken(req);
-    const { db, admin } = getAdmin();
+    const { db, FieldValue } = getAdmin();
 
     const { hash }: { hash?: string } = await readJson(req);
     const SIGN_KEY_HEX = process.env.SIGN_KEY_HEX || '';
@@ -30,7 +30,7 @@ export default async function handler(req: any, res?: any) {
       db.collection('users').doc(uid).collection('backup_signs').doc(tokenId).set({
         hash,
         signature,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
       }),
       DB_TIMEOUT_MS,
       'firestore set timeout'

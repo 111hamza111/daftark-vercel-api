@@ -1,23 +1,32 @@
-import * as admin from 'firebase-admin';
+// api/_admin.ts
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
-let app: admin.app.App | null = null;
+let _inited = false;
 
 export function getAdmin() {
   try {
-    if (!app) {
-      if (admin.apps && admin.apps.length > 0) {
-        app = admin.app();
-      } else {
-        const jsonStr = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-        if (!jsonStr) throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON not set');
-        const serviceAccount = JSON.parse(jsonStr);
+    if (!_inited) {
+      if (getApps().length === 0) {
+        const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+        if (!raw) throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON not set');
+        const serviceAccount = JSON.parse(raw);
 
-        app = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
+        initializeApp({
+          credential: cert(serviceAccount as any),
         });
       }
+      _inited = true;
     }
-    return { admin, db: admin.firestore() };
+
+    // نرجع كل ما نحتاجه بشكل موديولر
+    return {
+      db: getFirestore(),
+      auth: getAuth(),
+      FieldValue,
+      Timestamp,
+    };
   } catch (e: any) {
     console.error('🔥 Firebase Admin init error:', e?.message || e);
     throw new Error('Firebase Admin initialization failed');
