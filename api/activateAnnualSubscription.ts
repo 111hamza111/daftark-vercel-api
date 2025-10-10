@@ -2,12 +2,13 @@ export const config = { runtime: 'nodejs' };
 
 import { getAdmin } from './_admin.js';
 import { verifyIdToken } from './_auth.js';
+import { withTimeout, json } from './_utils.js';
+
+const DB_TIMEOUT_MS = Number(process.env.DB_TIMEOUT_MS ?? 7000);
 
 export default async function handler(req: Request) {
   try {
-    if (req.method !== 'POST') {
-      return new Response('Method Not Allowed', { status: 405 });
-    }
+    if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
     const uid = await verifyIdToken(req);
     const { db, admin } = getAdmin();
@@ -20,7 +21,7 @@ export default async function handler(req: Request) {
       if (!packageName || !productId || !purchaseToken) {
         return new Response('Play fields missing', { status: 400 });
       }
-      // TODO: تحقق فعلي عبر Google Play (لاحقًا)
+      // TODO: تحقق فعلي من Google Play لاحقًا
     } else {
       if (!String(body.receipt ?? '').trim()) {
         return new Response('receipt required', { status: 400 });
@@ -28,22 +29,22 @@ export default async function handler(req: Request) {
     }
 
     const now = admin.firestore.Timestamp.now();
-    const end = admin.firestore.Timestamp.fromDate(
-      new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    const end = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000));
+
+    await withTimeout(
+      db.collection('users').doc(uid).set({
+        isPremium: true,
+        subscriptionStart: now,
+        subscriptionEnd: end,
+        trial: admin.firestore.FieldValue.delete(),
+      }, { merge: true }),
+      DB_TIMEOUT_MS,
+      'firestore set timeout'
     );
 
-    await db.collection('users').doc(uid).set({
-      isPremium: true,
-      subscriptionStart: now,
-      subscriptionEnd: end,
-      trial: admin.firestore.FieldValue.delete(),
-    }, { merge: true });
-
-    return new Response(
-      JSON.stringify({ ok: true, mode, subscriptionEnd: end.toDate().toISOString() }),
-      { status: 200 }
-    );
+    return json({ ok: true, mode, subscriptionEnd: end.toDate().toISOString() }, 200);
   } catch (e: any) {
+    console.error('activateAnnualSubscription error:', e?.message || e);
     return new Response(e?.message || 'Error', { status: 500 });
   }
 }
