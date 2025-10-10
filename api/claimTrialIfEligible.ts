@@ -2,30 +2,30 @@ export const config = { runtime: 'nodejs' };
 
 import { getAdmin } from './_admin.js';
 import { verifyIdToken } from './_auth.js';
-import { withTimeout, json } from './_utils.js';
+import { withTimeout } from './_utils.js';
+import { getMethod, readJson, sendJson, sendText } from './_http.js';
 
 const DB_TIMEOUT_MS = Number(process.env.DB_TIMEOUT_MS ?? 7000);
 
-export default async function handler(req: Request) {
+// ندعم التوقيعين: (req,res) و(req)
+export default async function handler(req: any, res?: any) {
   try {
-    if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+    if (getMethod(req) !== 'POST') return sendText(res, 'Method Not Allowed', 405);
 
     const uid = await verifyIdToken(req);
     const { db, admin } = getAdmin();
 
-    const { deviceFingerprint } = await req.json();
-    if (!deviceFingerprint) return new Response('deviceFingerprint required', { status: 400 });
+    const { deviceFingerprint } = await readJson(req);
+    if (!deviceFingerprint) return sendText(res, 'deviceFingerprint required', 400);
 
     const TRIAL_DAYS = Number(process.env.TRIAL_DAYS ?? 7);
-
     const ref = db.collection('users').doc(uid);
 
-    // read user with timeout
     const snap = await withTimeout(ref.get(), DB_TIMEOUT_MS, 'firestore get timeout');
     const user = snap.data() || {};
 
     if (user.isPremium === true || (user.trial && user.trial.startedAt)) {
-      return json({ ok: false, reason: 'ineligible' }, 400);
+      return sendJson(res, { ok: false, reason: 'ineligible' }, 400);
     }
 
     await withTimeout(
@@ -40,9 +40,9 @@ export default async function handler(req: Request) {
       'firestore set timeout'
     );
 
-    return json({ ok: true, trialDays: TRIAL_DAYS }, 200);
+    return sendJson(res, { ok: true, trialDays: TRIAL_DAYS }, 200);
   } catch (e: any) {
     console.error('claimTrialIfEligible error:', e?.message || e);
-    return new Response(e?.message || 'Error', { status: 500 });
+    return sendText(res, e?.message || 'Error', 500);
   }
 }

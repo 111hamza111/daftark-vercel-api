@@ -2,23 +2,24 @@ export const config = { runtime: 'nodejs' };
 
 import { getAdmin } from './_admin.js';
 import { verifyIdToken } from './_auth.js';
-import { withTimeout, json } from './_utils.js';
+import { withTimeout } from './_utils.js';
+import { getMethod, readJson, sendJson, sendText } from './_http.js';
 import crypto from 'crypto';
 
 const DB_TIMEOUT_MS = Number(process.env.DB_TIMEOUT_MS ?? 7000);
 
-export default async function handler(req: Request) {
+export default async function handler(req: any, res?: any) {
   try {
-    if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+    if (getMethod(req) !== 'POST') return sendText(res, 'Method Not Allowed', 405);
 
     const uid = await verifyIdToken(req);
     const { db, admin } = getAdmin();
 
-    const { hash }: { hash?: string } = await req.json();
+    const { hash }: { hash?: string } = await readJson(req);
     const SIGN_KEY_HEX = process.env.SIGN_KEY_HEX || '';
 
-    if (!hash || !/^[0-9a-fA-F]{64}$/.test(hash)) return new Response('bad hash', { status: 400 });
-    if (!SIGN_KEY_HEX) return new Response('SIGN_KEY_HEX missing', { status: 500 });
+    if (!hash || !/^[0-9a-fA-F]{64}$/.test(hash)) return sendText(res, 'bad hash', 400);
+    if (!SIGN_KEY_HEX) return sendText(res, 'SIGN_KEY_HEX missing', 500);
 
     const key = Buffer.from(SIGN_KEY_HEX, 'hex');
     const signature = crypto.createHmac('sha256', key).update(hash, 'utf8').digest('hex');
@@ -35,9 +36,9 @@ export default async function handler(req: Request) {
       'firestore set timeout'
     );
 
-    return json({ ok: true, tokenId, signature }, 200);
+    return sendJson(res, { ok: true, tokenId, signature }, 200);
   } catch (e: any) {
     console.error('signBackup error:', e?.message || e);
-    return new Response(e?.message || 'Error', { status: 500 });
+    return sendText(res, e?.message || 'Error', 500);
   }
 }

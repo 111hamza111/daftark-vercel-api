@@ -2,29 +2,30 @@ export const config = { runtime: 'nodejs' };
 
 import { getAdmin } from './_admin.js';
 import { verifyIdToken } from './_auth.js';
-import { withTimeout, json } from './_utils.js';
+import { withTimeout } from './_utils.js';
+import { getMethod, readJson, sendJson, sendText } from './_http.js';
 
 const DB_TIMEOUT_MS = Number(process.env.DB_TIMEOUT_MS ?? 7000);
 
-export default async function handler(req: Request) {
+export default async function handler(req: any, res?: any) {
   try {
-    if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+    if (getMethod(req) !== 'POST') return sendText(res, 'Method Not Allowed', 405);
 
     const uid = await verifyIdToken(req);
     const { db, admin } = getAdmin();
 
-    const body = await req.json();
+    const body = await readJson(req);
     const mode = String(body.mode ?? 'manual');
 
     if (mode === 'play') {
       const { packageName, productId, purchaseToken } = body;
       if (!packageName || !productId || !purchaseToken) {
-        return new Response('Play fields missing', { status: 400 });
+        return sendText(res, 'Play fields missing', 400);
       }
       // TODO: تحقق فعلي من Google Play لاحقًا
     } else {
       if (!String(body.receipt ?? '').trim()) {
-        return new Response('receipt required', { status: 400 });
+        return sendText(res, 'receipt required', 400);
       }
     }
 
@@ -42,9 +43,9 @@ export default async function handler(req: Request) {
       'firestore set timeout'
     );
 
-    return json({ ok: true, mode, subscriptionEnd: end.toDate().toISOString() }, 200);
+    return sendJson(res, { ok: true, mode, subscriptionEnd: end.toDate().toISOString() }, 200);
   } catch (e: any) {
     console.error('activateAnnualSubscription error:', e?.message || e);
-    return new Response(e?.message || 'Error', { status: 500 });
+    return sendText(res, e?.message || 'Error', 500);
   }
 }
